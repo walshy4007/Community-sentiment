@@ -24,9 +24,9 @@ async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
     init_db()
 
-#@bot.event
-#async def on_application_command_error(ctx, error):
-#    await ctx.respond("You likely do not have the necessary permissions to use this command.", ephemeral=True)
+@bot.event
+async def on_application_command_error(ctx, error):
+    await ctx.respond("You likely do not have the necessary permissions to use this command.", ephemeral=True)
 
 
 def is_allowed():
