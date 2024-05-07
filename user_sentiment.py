@@ -1,5 +1,7 @@
 from discord.ext import commands
 import discord
+import nltk
+nltk.download('vader_lexicon')
 from database import init_db, insert_sentiment
 from sentiment_analysis import analyze_sentiment, generate_sentiment_report
 from role_commands import setup as setup_role_commands
@@ -7,7 +9,6 @@ import json
 import sqlite3
 from plotting import generate_sentiment_plot
 import os
-
 
 # Load configuration and set up the bot
 with open('config.json') as config_file:
@@ -42,18 +43,27 @@ def is_allowed():
 
 # Bot setup and other command definitions follow here
 
-@bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for 7 days")
-async def sentiment_report(ctx, days: int):
+@bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for sentiment analysis with optional raw data export")
+async def sentiment_report(ctx, days: int, export_data: bool=False):
     plot_filename = f'sentiment_{ctx.guild.id}_{days}days.png'
-    success = generate_sentiment_plot(plot_filename, days, str(ctx.guild.id))
+    data_exported = " and the data file" if export_data else ""
+    success = generate_sentiment_plot(plot_filename, days, str(ctx.guild.id), export_data)
+    
     if success:
         try:
             file = discord.File(plot_filename, filename=plot_filename)
-            await ctx.respond(f"Here's the sentiment analysis for the last {days} days:", file=file)
+            await ctx.respond(f"Here's the sentiment analysis for the last {days} days{data_exported}:", file=file)
+            if export_data:
+                data_filename = f'sentiment_data_{ctx.guild.id}_{days}d.csv'
+                data_file = discord.File(data_filename, filename=data_filename)
+                await ctx.send(file=data_file)
         finally:
-            os.remove(plot_filename)  # Delete the file after sending it
+            os.remove(plot_filename)  # Delete the plot file after sending it
+            if export_data:
+                os.remove(data_filename)  # Delete the data file after sending it
     else:
         await ctx.respond("No data available for the specified range.")
+
 
 
 
