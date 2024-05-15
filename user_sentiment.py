@@ -7,7 +7,7 @@ from sentiment_analysis import analyze_sentiment, generate_sentiment_report
 from role_commands import setup as setup_role_commands
 import json
 import sqlite3
-from plotting import generate_sentiment_plot
+from plotting import generate_sentiment_plots
 import os
 
 # Load configuration and set up the bot
@@ -43,28 +43,34 @@ def is_allowed():
 
 # Bot setup and other command definitions follow here
 
-@bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for sentiment analysis with optional raw data export")
-async def sentiment_report(ctx, days: int, export_data: bool=False):
-    plot_filename = f'sentiment_{ctx.guild.id}_{days}days.png'
-    data_exported = " and the data file" if export_data else ""
-    success = generate_sentiment_plot(plot_filename, days, str(ctx.guild.id), export_data)
+@bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for sentiment analysis over a specified number of days")
+async def sentiment_report(ctx, days: int, export_data: bool = False):
+    # Defer the response to buy time for generating plots and handling files
+    await ctx.defer()
+
+    filename_prefix = f'sentiment_{ctx.guild.id}_{days}days'
+    bar_chart_filename, line_chart_filename, data_filename = generate_sentiment_plots(filename_prefix, days, str(ctx.guild.id), export_data)
     
-    if success:
+    if bar_chart_filename and line_chart_filename:
         try:
-            file = discord.File(plot_filename, filename=plot_filename)
-            await ctx.respond(f"Here's the sentiment analysis for the last {days} days{data_exported}:", file=file)
-            if export_data:
-                data_filename = f'sentiment_data_{ctx.guild.id}_{days}d.csv'
+            bar_chart_file = discord.File(bar_chart_filename, filename=bar_chart_filename)
+            line_chart_file = discord.File(line_chart_filename, filename=line_chart_filename)
+            
+            # After deferring, you can use follow-up methods to send messages and files
+            await ctx.followup.send(f"Here's the sentiment volume analysis for the last {days} days:", files=[bar_chart_file])
+            await ctx.followup.send(f"Here's the sentiment distribution analysis for the last {days} days:", files=[line_chart_file])
+
+            if export_data and data_filename:
                 data_file = discord.File(data_filename, filename=data_filename)
-                await ctx.send(file=data_file)
+                await ctx.followup.send(file=data_file)
         finally:
-            os.remove(plot_filename)  # Delete the plot file after sending it
-            if export_data:
-                os.remove(data_filename)  # Delete the data file after sending it
+            os.remove(bar_chart_filename)  # Delete the bar chart file after sending
+            os.remove(line_chart_filename)  # Delete the line chart file after sending
+            if export_data and data_filename:
+                os.remove(data_filename)  # Delete the data file after sending
     else:
-        await ctx.respond("No data available for the specified range.")
-
-
+        # Use followup.send even when sending a response that there's no data
+        await ctx.followup.send("No data available for the specified range.")
 
 
 @bot.event
