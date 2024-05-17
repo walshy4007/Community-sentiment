@@ -5,12 +5,19 @@ import matplotlib.pyplot as plt
 import os
 from matplotlib.ticker import PercentFormatter
 
-def generate_sentiment_plots(filename_prefix, days=7, guild_id='123456789', export_data=False):
+def generate_sentiment_plots(filename_prefix, days=7, guild_id='123456789', channel_name=None, export_data=False):
     # Connect to the SQLite database and query the sentiment data
     conn = sqlite3.connect('sentiments.db')
     start_date = datetime.now() - timedelta(days=days)
-    query = "SELECT timestamp, sentiment FROM sentiment_data WHERE timestamp >= ? AND guild_id = ?"
-    df = pd.read_sql_query(query, conn, params=(start_date.strftime('%Y-%m-%d %H:%M:%S'), guild_id))
+    
+    if channel_name:
+        query = "SELECT timestamp, sentiment FROM sentiment_data WHERE timestamp >= ? AND guild_id = ? AND channel_name = ?"
+        params = (start_date.strftime('%Y-%m-%d %H:%M:%S'), guild_id, channel_name)
+    else:
+        query = "SELECT timestamp, sentiment FROM sentiment_data WHERE timestamp >= ? AND guild_id = ?"
+        params = (start_date.strftime('%Y-%m-%d %H:%M:%S'), guild_id)
+    
+    df = pd.read_sql_query(query, conn, params=params)
 
     if df.empty:
         print("No data available for the specified range or guild.")
@@ -34,7 +41,7 @@ def generate_sentiment_plots(filename_prefix, days=7, guild_id='123456789', expo
     plt.figure(figsize=(10, 5))
     ax = percentage_data.plot(kind='bar', stacked=True)
     ax.yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Sentiment Analysis (Volume) for the Last {days} Days')
+    plt.title(f'Sentiment Analysis (Volume) for the Last {days} Days' + (f' in {channel_name}' if channel_name else ''))
     plt.xlabel('Date')
     plt.ylabel('Percentage of Messages')
     plt.ylim([0, 1])
@@ -47,7 +54,7 @@ def generate_sentiment_plots(filename_prefix, days=7, guild_id='123456789', expo
     plt.figure(figsize=(10, 5))
     ax = percentage_data.plot(kind='line')
     ax.yaxis.set_major_formatter(PercentFormatter(1))
-    plt.title(f'Sentiment Analysis (Distribution) for the Last {days} Days')
+    plt.title(f'Sentiment Analysis (Distribution) for the Last {days} Days' + (f' in {channel_name}' if channel_name else ''))
     plt.xlabel('Date')
     plt.ylabel('Percentage of Messages')
     plt.ylim([0, 1])
