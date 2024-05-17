@@ -1,14 +1,20 @@
 from discord.ext import commands
 import discord
+
 import nltk
 nltk.download('vader_lexicon')
+
 from database import init_db, insert_sentiment
 from sentiment_analysis import analyze_sentiment, generate_sentiment_report
 from role_commands import setup as setup_role_commands
 import json
 import sqlite3
 from plotting import generate_sentiment_plots
+
 import os
+from datetime import datetime
+import time
+
 
 # Load configuration and set up the bot
 with open('config.json') as config_file:
@@ -41,7 +47,11 @@ def is_allowed():
         return any(role in allowed_roles for role in user_roles)
     return commands.check(predicate)
 
-# Bot setup and other command definitions follow here
+@bot.slash_command(name='ping', description="Ping the bot to see if it's alive")
+async def ping(ctx):
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Get the current date and time in a readable format
+    await ctx.respond(f"Pong! - Bot is alive as of {current_time}")
+
 
 @bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for sentiment analysis over a specified number of days")
 @is_allowed()
