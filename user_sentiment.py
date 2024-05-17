@@ -49,9 +49,9 @@ def is_allowed():
 
 @bot.slash_command(name='ping', description="Ping the bot to see if it's alive")
 async def ping(ctx):
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Get the current date and time in a readable format
-    await ctx.respond(f"Pong! - Bot is alive as of {current_time}")
-
+    current_time = datetime.now()
+    unix_timestamp = int(current_time.timestamp())
+    await ctx.respond(f"Pong! - Bot is alive as of <t:{unix_timestamp}:f>")
 
 @bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for sentiment analysis over a specified number of days")
 @is_allowed()
