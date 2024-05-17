@@ -44,12 +44,14 @@ def is_allowed():
 # Bot setup and other command definitions follow here
 
 @bot.slash_command(name='visual_sentiment_report_xdays', description="Visual report for sentiment analysis over a specified number of days")
-async def sentiment_report(ctx, days: int, export_data: bool = False):
+@is_allowed()
+async def sentiment_report(ctx, days: int, channel: discord.TextChannel = None, export_data: bool = False):
     # Defer the response to buy time for generating plots and handling files
     await ctx.defer()
 
     filename_prefix = f'sentiment_{ctx.guild.id}_{days}days'
-    bar_chart_filename, line_chart_filename, data_filename = generate_sentiment_plots(filename_prefix, days, str(ctx.guild.id), export_data)
+    channel_name = channel.name if channel else None
+    bar_chart_filename, line_chart_filename, data_filename = generate_sentiment_plots(filename_prefix, days, str(ctx.guild.id), channel_name, export_data)
     
     if bar_chart_filename and line_chart_filename:
         try:
@@ -57,8 +59,8 @@ async def sentiment_report(ctx, days: int, export_data: bool = False):
             line_chart_file = discord.File(line_chart_filename, filename=line_chart_filename)
             
             # After deferring, you can use follow-up methods to send messages and files
-            await ctx.followup.send(f"Here's the sentiment volume analysis for the last {days} days:", files=[bar_chart_file])
-            await ctx.followup.send(f"Here's the sentiment distribution analysis for the last {days} days:", files=[line_chart_file])
+            await ctx.followup.send(f"Here's the sentiment volume analysis for the last {days} days" + (f' in {channel_name}' if channel_name else '') + ":", files=[bar_chart_file])
+            await ctx.followup.send(f"Here's the sentiment distribution analysis for the last {days} days" + (f' in {channel_name}' if channel_name else '') + ":", files=[line_chart_file])
 
             if export_data and data_filename:
                 data_file = discord.File(data_filename, filename=data_filename)
@@ -71,7 +73,6 @@ async def sentiment_report(ctx, days: int, export_data: bool = False):
     else:
         # Use followup.send even when sending a response that there's no data
         await ctx.followup.send("No data available for the specified range.")
-
 
 @bot.event
 async def on_message(message):
